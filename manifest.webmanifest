@@ -1,0 +1,19 @@
+{
+  "name": "Pizarra nuevas normas",
+  "short_name": "Nuevas normas",
+  "description": "Pizarra de voleibol con la regla de prueba FIVB 2026 de faltas de posición y simulador de tiempos de saque.",
+  "id": "pizarra-nuevas-normas",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#2b5f7e",
+  "theme_color": "#0d6b74",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

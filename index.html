@@ -1,0 +1,1159 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pizarra nuevas normas</title>
+<meta name="description" content="Pizarra de voleibol con la regla de prueba FIVB 2026 de faltas de posición y simulador de tiempos de saque.">
+<meta name="theme-color" content="#0d6b74">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nuevas normas">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout: pista a la izquierda, raíl de control a la derecha; se apila por debajo de 900px. La pista mantiene colores FIVB (campo naranja, zona libre azul). */
+:root{
+  --bg:#e9efee; --panel:#fbfcfc; --soft:#e0e9e8; --ink:#14222a; --muted:#56686e; --line:#cbd7d6;
+  --accent:#0d6b74; --accent-ink:#ffffff; --fault:#d42a3c; --ok:#22804d;
+  --free:#2b5f7e; --floor:#d4843b; --cline:#ffffff; --net:#141a1d;
+  --display:"Saira Condensed","Arial Narrow",sans-serif;
+  --body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1618; --panel:#152024; --soft:#1c2a2e; --ink:#e2ebeb; --muted:#91a4a8; --line:#29393d;
+  --accent:#56b9c2; --accent-ink:#06262a; --fault:#ff5d70; --ok:#4fc68d;
+  --free:#1d465e; --floor:#b06e30; --cline:#f1f1ee; --net:#05080a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1618; --panel:#152024; --soft:#1c2a2e; --ink:#e2ebeb; --muted:#91a4a8; --line:#29393d;
+  --accent:#56b9c2; --accent-ink:#06262a; --fault:#ff5d70; --ok:#4fc68d;
+  --free:#1d465e; --floor:#b06e30; --cline:#f1f1ee; --net:#05080a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+.app{max-width:1300px;margin:0 auto;padding-inline:16px;padding-block:12px 28px}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button,.pill,.sw,.tog{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+
+/* Cabecera */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;margin-bottom:12px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.mark{font-family:var(--display);font-weight:700;font-size:1.25rem;background:var(--floor);color:#fff;border-radius:6px;padding:.1rem .5rem;letter-spacing:.04em}
+.brand h1{font-family:var(--display);font-weight:700;font-size:1.6rem;line-height:1;margin:0;letter-spacing:.01em}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:.85rem}
+.status{display:inline-flex;align-items:center;gap:8px;font-family:var(--display);font-weight:600;font-size:1.05rem;letter-spacing:.03em;padding:.3rem .75rem;border-radius:999px;border:1.5px solid currentColor}
+.status::before{content:"";width:9px;height:9px;border-radius:50%;background:currentColor}
+.status.ok{color:var(--ok)} .status.bad{color:var(--fault);animation:blink 1s steps(2,start) infinite} .status.exam{color:var(--accent)}
+@keyframes blink{50%{opacity:.55}}
+
+/* Botones */
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:.42rem .72rem;font-weight:600;cursor:pointer;line-height:1.2}
+.btn:hover{border-color:var(--accent)}
+.btn.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--fault)}
+.btn.big{font-family:var(--display);font-size:1.15rem;padding:.5rem 1rem}
+
+/* Escenario */
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+@media (max-width:900px){.stage{grid-template-columns:minmax(0,1fr)}}
+.board{min-width:0;display:flex;flex-direction:column;gap:10px}
+.court-card{background:var(--free);border-radius:12px;overflow:hidden;position:relative}
+.court-card.flash{animation:flash .7s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 0 transparent}25%{box-shadow:0 0 0 6px var(--fault)}100%{box-shadow:0 0 0 0 transparent}}
+#court{display:block;width:100%;height:auto;max-height:calc(100vh - 270px);max-height:calc(100dvh - 270px);min-height:300px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+.horiz #court{max-height:calc(100dvh - 120px);min-height:220px}
+.tool-pen #court,.tool-arrow #court{cursor:crosshair}
+.toast{position:absolute;left:10px;top:10px;max-width:min(62%,420px);background:var(--fault);color:#fff;border-radius:8px;padding:6px 10px;font-weight:600;font-size:.9rem;line-height:1.3;pointer-events:none;z-index:2;display:none}
+.toast b{font-family:var(--display);display:block;font-size:1rem;letter-spacing:.02em}
+.cap{position:absolute;left:10px;bottom:10px;z-index:2;background:rgba(10,18,22,.72);color:#fff;border-radius:8px;padding:4px 10px;font-family:var(--display);font-weight:600;font-size:1.05rem;letter-spacing:.02em;pointer-events:none;max-width:calc(100% - 20px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cap em{font-style:normal;color:#ffe066;margin-left:6px}
+
+/* Salidas */
+.varbar{display:flex;gap:6px;align-items:center;overflow-x:auto;padding-block:2px}
+.varbar .lbl{font-family:var(--display);font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);flex:none;margin-right:2px}
+.vchip{flex:none;border:1.5px solid var(--line);background:var(--panel);border-radius:999px;padding:.32rem .85rem;font-weight:700;cursor:pointer;position:relative;white-space:nowrap}
+.vchip.on{border-color:var(--floor);background:var(--floor);color:#fff}
+.vchip.bad::after{content:"";position:absolute;top:1px;right:3px;width:8px;height:8px;border-radius:50%;background:var(--fault)}
+.vchip.add{color:var(--muted);font-weight:600;border-style:dashed}
+
+/* Barra de pasos */
+.stepbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px}
+.stepbar .ctrls{display:flex;gap:6px;flex-wrap:wrap}
+.pills{display:flex;gap:6px;overflow-x:auto;flex:1 1 220px;min-width:0;padding-block:2px}
+.pill{flex:none;border:1px solid var(--line);background:var(--soft);border-radius:999px;padding:.3rem .7rem;cursor:pointer;font-weight:600;white-space:nowrap;position:relative}
+.pill b{font-family:var(--display);margin-right:5px;color:var(--muted)}
+.pill.on{background:var(--ink);color:var(--bg);border-color:var(--ink)} .pill.on b{color:inherit;opacity:.7}
+.pill.bad::after{content:"";position:absolute;top:2px;right:3px;width:8px;height:8px;border-radius:50%;background:var(--fault)}
+.speed{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.85rem}
+.speed select{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:.2rem .3rem}
+
+.confirm{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--panel);border:1.5px solid var(--fault);border-radius:10px;padding:8px 10px}
+.confirm span{flex:1 1 200px;min-width:0}
+
+.faults{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.faults h3{margin:0 0 4px;font-family:var(--display);font-size:1.1rem;letter-spacing:.02em}
+.faults.bad{border-color:var(--fault)} .faults.bad h3{color:var(--fault)}
+.faults.ok h3{color:var(--ok)}
+.faults ul{margin:4px 0 0;padding-left:18px}
+.faults p{margin:0;color:var(--muted)}
+
+/* Examen */
+.exam{background:var(--panel);border:2px solid var(--accent);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.exam.right{border-color:var(--ok)} .exam.wrong{border-color:var(--fault)}
+.exam .q{font-family:var(--display);font-weight:700;font-size:1.3rem;line-height:1.15;margin:0}
+.exam .sub{margin:0;color:var(--muted)}
+.exam .res{margin:0;font-weight:600}
+.exam.right .res{color:var(--ok)} .exam.wrong .res{color:var(--fault)}
+.exam ul{margin:0;padding-left:18px}
+.exam .row{display:flex;flex-wrap:wrap;gap:8px}
+.app.examing .stepbar,.app.examing .varbar,.app.examing .faults{display:none}
+
+/* Panel */
+.panel{display:flex;flex-direction:column;gap:12px;min-width:0}
+.sec{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+.sec h2{margin:0;font-family:var(--display);font-weight:600;font-size:.82rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none}
+.sec h2::after{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .2s;margin-right:4px}
+.sec:not(.closed) h2{margin-bottom:8px}
+.sec.closed h2::after{transform:rotate(-45deg)}
+.sec.closed>:not(h2){display:none}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.row+.row{margin-top:8px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg .btn{border:0;border-radius:0;flex:1}
+.seg .btn+.btn{border-left:1px solid var(--line)}
+.rots{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%}
+.rots .btn{display:flex;flex-direction:column;align-items:center;padding:.35rem .3rem}
+.rots .btn small{font-weight:400;font-size:.75rem;opacity:.8}
+.rots .btn strong{font-family:var(--display);font-size:1.05rem}
+.tog{display:flex;align-items:center;gap:8px;cursor:pointer;padding:2px 0}
+.tog input{width:18px;height:18px;accent-color:var(--accent);flex:none}
+.swatches{display:flex;gap:6px}
+.sw{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);cursor:pointer;padding:0}
+.sw.on{outline:2px solid var(--accent);outline-offset:2px}
+.field{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:7px;padding:.4rem .55rem;font-size:16px;min-width:0}
+select.field{padding:.38rem .45rem}
+.hint{font-size:.82rem;color:var(--muted);margin:6px 0 0}
+.sub-h{font-family:var(--display);font-weight:600;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+.roster{display:grid;grid-template-columns:minmax(0,1fr) 58px minmax(0,1.3fr);gap:6px;align-items:center;margin-top:8px}
+.roster .rl{font-size:.85rem;display:flex;align-items:center;gap:6px;min-width:0}
+.roster .rl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.roster .hd{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.roster .field{padding:.3rem .45rem}
+.plays{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.plays li{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.plays li .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plays li .nm small{display:block;color:var(--muted)}
+textarea.field{min-height:70px;font-family:ui-monospace,Menlo,monospace;font-size:.75rem;resize:vertical}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;font-size:.88rem}
+.legend span{display:flex;align-items:center;gap:6px}
+.dot{width:16px;height:16px;border-radius:50%;border:1px solid #0b1214;flex:none}
+.rules{margin:10px 0 0;padding-left:18px;font-size:.88rem}
+.rules li+li{margin-top:3px}
+.score{font-family:var(--display);font-weight:700;font-size:1.3rem}
+/* Simulador de saque */
+.simbar{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:8px}
+.simrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.simrow #bSim{margin-left:auto}
+.tl{position:relative;padding-top:2px}
+.tl .track{display:flex;height:26px;border-radius:6px;overflow:hidden;font-family:var(--display);font-weight:600;font-size:.82rem}
+.tl .seg-w{background:var(--soft);color:var(--muted)} .tl .seg-a{background:#3d7fa6;color:#fff} .tl .seg-f{background:#e9c33f;color:#1d1a10}
+.tl .track>div{display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;min-width:0;padding-inline:4px}
+.tl .win{position:relative;height:18px;margin-top:4px}
+.tl .win>div{position:absolute;top:0;bottom:0;border:2px solid var(--ok);border-top:0;border-radius:0 0 6px 6px;display:flex;align-items:flex-end;justify-content:center;font-size:.78rem;font-weight:700;color:var(--ok);white-space:nowrap}
+.tl .cur{position:absolute;top:0;width:3px;height:26px;background:var(--fault);border-radius:2px;display:none;transform:translateX(-1px)}
+.tl .ticks{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+.simres{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;overflow-x:auto}
+.simres h3{margin:0 0 6px;font-family:var(--display);font-size:1.05rem;letter-spacing:.02em}
+.simres table{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:tabular-nums}
+.simres th{text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;padding:2px 6px 4px 0}
+.simres td{padding:4px 6px 4px 0;border-top:1px solid var(--line);white-space:nowrap}
+.simres .y{color:var(--ok);font-weight:700} .simres .n{color:var(--fault);font-weight:700}
+.simres p{margin:0;color:var(--muted)}
+.tgrid{display:grid;grid-template-columns:minmax(0,1fr) 64px 64px;gap:6px;align-items:center;font-size:.88rem}
+.tgrid .hd{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.tgrid2{grid-template-columns:minmax(0,1fr) 80px;margin-top:8px}
+.tgrid .field{padding:.3rem .45rem}
+.app.examing .simbar,.app.examing .simres,.app.present .simres{display:none}
+.app.present .simbar{flex:none;padding:6px}
+.app.present .simrow .btn{min-height:46px}
+.app.present #bSim{font-family:var(--display);font-size:1.15rem}
+@media (max-width:700px){.app.present .tl .win,.app.present .tl .ticks{display:none}}
+.reach{fill:#3ddc84;fill-opacity:.12;stroke:#3ddc84;stroke-width:.05;pointer-events:none}
+.tgt{fill:none;stroke:#fff;stroke-width:.05;stroke-dasharray:.1 .08;stroke-opacity:.8;pointer-events:none}
+.tgtl{stroke:#fff;stroke-opacity:.35;stroke-width:.04;stroke-dasharray:.1 .1;pointer-events:none}
+.chip.late .body{stroke:#ff8a00;stroke-width:.14}
+.chip.made .body{stroke:#3ddc84;stroke-width:.12}
+
+@media (pointer:coarse){.btn{min-height:42px}.pill,.vchip{min-height:38px}.sw{width:32px;height:32px}.tog input{width:22px;height:22px}}
+
+/* Presentación: ocupa toda la pantalla (también en iPhone, sin API de pantalla completa) */
+.only-present{display:none}
+.app.present{position:fixed;inset:0;z-index:50;max-width:none;margin:0;background:var(--bg);display:flex;flex-direction:column;gap:8px;height:100vh;height:100dvh;
+  padding:calc(env(safe-area-inset-top,0px) + 8px) calc(env(safe-area-inset-right,0px) + 16px) calc(env(safe-area-inset-bottom,0px) + 8px) calc(env(safe-area-inset-left,0px) + 16px)}
+.app.present .panel,.app.present .brand,.app.present #btnPresent,.app.present .faults,.app.present .varbar .lbl{display:none}
+.app.present .only-present{display:inline-flex}
+.app.present .top{position:absolute;z-index:3;top:calc(env(safe-area-inset-top,0px) + 14px);right:calc(env(safe-area-inset-right,0px) + 24px);margin:0;gap:6px;flex-wrap:nowrap}
+.app.present .top .btn{background:color-mix(in srgb,var(--panel) 88%,transparent);padding:.35rem .6rem;min-height:44px}
+.app.present .status{background:var(--panel);font-size:.95rem;padding:.25rem .6rem}
+.app.present .stage{display:flex;flex:1;min-height:0}
+.app.present .board{flex:1;min-height:0;gap:6px}
+.app.present .court-card{flex:1;min-height:0;display:flex}
+.app.present #court{width:100%;height:100%;max-height:none;min-height:0}
+.app.present .toast{display:block}
+.app.present .toast[hidden]{display:none}
+.app.present .stepbar{flex:none;padding:6px;flex-wrap:nowrap}
+.app.present .stepbar .ctrls{flex-wrap:nowrap}
+.app.present .stepbar .btn{min-height:54px;min-width:54px;font-size:1.25rem;padding:.3rem .7rem}
+.app.present #bPlay{font-family:var(--display);font-size:1.2rem}
+.app.present .pill{font-size:1.05rem;min-height:50px;padding:.3rem 1rem}
+.app.present .vchip{font-size:1.05rem;min-height:44px;padding:.3rem 1.05rem}
+.app.present .varbar,.app.present .exam{flex:none}
+@media (max-width:700px){.app.present .speed,.app.present #bUndo,.app.present #bRedo,.app.present #bFirst{display:none}.app.present .status{font-size:0;gap:0;padding:.35rem}.app.present .status::before{width:12px;height:12px}}
+
+/* SVG */
+.free{fill:var(--free)} .floor{fill:var(--floor)}
+.cl{stroke:var(--cline);stroke-width:.07;fill:none}
+.net{stroke:var(--net);stroke-width:.16} .netl{stroke:var(--cline);stroke-width:.03;stroke-opacity:.6}
+.post{fill:var(--net)}
+.zn{fill:#fff;fill-opacity:.17;font-family:var(--display);font-weight:700;font-size:1.25px;text-anchor:middle;dominant-baseline:central}
+.slbl{fill:#fff;fill-opacity:.55;font-family:var(--display);font-weight:600;font-size:.42px;letter-spacing:.06px;text-anchor:middle}
+.rel{stroke:#fff;stroke-opacity:.5;stroke-width:.05;stroke-dasharray:.16 .12}
+.rel.bad{stroke:var(--fault);stroke-opacity:1;stroke-width:.11;stroke-dasharray:none}
+.ghost{fill:none;stroke:#fff;stroke-opacity:.55;stroke-width:.05;stroke-dasharray:.12 .1}
+.mv{stroke:#fff;stroke-opacity:.75;stroke-width:.06;stroke-dasharray:.18 .12}
+.mvh{fill:#fff;fill-opacity:.75}
+.traj{fill:none;stroke:#ffe066;stroke-width:.07;stroke-dasharray:.22 .14}
+.trajh{fill:#ffe066}
+.legal{fill:#3ddc84;fill-opacity:.2;stroke:#3ddc84;stroke-width:.06;stroke-dasharray:.2 .12;pointer-events:none}
+.legall{fill:#3ddc84;font-family:var(--display);font-weight:700;font-size:.32px;letter-spacing:.04px;pointer-events:none}
+.zone{fill-opacity:.24;stroke-opacity:.85;stroke-width:.05;pointer-events:none}
+.zpct{font-family:var(--display);font-weight:700;font-size:.5px;text-anchor:middle;dominant-baseline:central;fill:#fff;paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:.09px;pointer-events:none}
+.chip{cursor:grab}
+.chip.dragging{cursor:grabbing}
+.chip .hit{fill:transparent}
+.chip .body{stroke:#0b1214;stroke-width:.05}
+.chip text{font-family:var(--display);font-weight:700;font-size:.38px;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.chip.bad .body{stroke:var(--fault);stroke-width:.13}
+.chip.pick .body{stroke:#ffe066;stroke-width:.1}
+.halo{fill:var(--fault);fill-opacity:.4;animation:pulse .9s ease-in-out infinite}
+@keyframes pulse{50%{fill-opacity:.06}}
+.r-set .body{fill:#f3c33d} .r-set text{fill:#1d1a10}
+.r-oh .body{fill:#f5f3ec} .r-oh text{fill:#1b2328}
+.r-mb .body{fill:#28408f} .r-mb text{fill:#fff}
+.r-opp .body{fill:#7cc3df} .r-opp text{fill:#0d2430}
+.r-lib .body{fill:#2f9d62} .r-lib text{fill:#fff}
+.srv .body{fill:#222;stroke:#fff} .srv text{fill:#fff}
+.chip .zb circle{fill:var(--net);stroke:#fff;stroke-width:.03}
+.chip .zb text{fill:#fff;font-size:.24px}
+.chip .srvl{fill:#fff;fill-opacity:.75;font-weight:600;font-size:.28px;dominant-baseline:auto}
+.chip .pname{fill:#fff;font-family:var(--body);font-weight:700;font-size:.3px;paint-order:stroke;stroke:rgba(0,0,0,.7);stroke-width:.08px}
+.ball{cursor:grab}
+@media (prefers-reduced-motion: reduce){.halo,.status.bad{animation:none}.court-card.flash{animation:none;box-shadow:0 0 0 5px var(--fault)}}
+</style>
+
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand">
+      <span class="mark">2026</span>
+      <div><h1>Pizarra nuevas normas</h1><p id="ruleLine">Regla de prueba FIVB 2026: el orden se comprueba en el silbato</p></div>
+    </div>
+    <span class="status ok" id="status">Silbato: posición legal</span>
+    <button class="btn" id="btnPresent">Modo presentación</button>
+    <button class="btn only-present" id="btnTurn" title="Girar la pista">Girar</button>
+    <button class="btn only-present" id="btnExit">Salir</button>
+  </header>
+
+  <div class="stage">
+    <section class="board">
+      <div class="court-card" id="courtCard">
+        <div class="toast" id="toast" hidden></div>
+        <div class="cap" id="cap"></div>
+        <svg id="court" viewBox="-2 -3 13 24" xmlns="http://www.w3.org/2000/svg" aria-label="Pista de voleibol"></svg>
+      </div>
+
+      <div class="simbar" id="simbar">
+        <div class="simrow">
+          <div class="seg" id="serveSeg">
+            <button class="btn" data-sv="float">Flotante</button>
+            <button class="btn" data-sv="jfloat">Flot. salto</button>
+            <button class="btn" data-sv="power">Potencia</button>
+          </div>
+          <div class="seg" id="ruleSeg">
+            <button class="btn" data-rule="clasica">Clásica</button>
+            <button class="btn" data-rule="prueba">Prueba FIVB</button>
+          </div>
+          <button class="btn primary" id="bSim">▶ Simular saque</button>
+        </div>
+        <div class="tl" id="tl"></div>
+      </div>
+
+      <div class="simres" id="simres"></div>
+
+      <div class="exam" id="exam" hidden></div>
+
+      <div class="varbar" id="varbar"></div>
+
+      <div class="stepbar">
+        <div class="ctrls">
+          <button class="btn" id="bFirst" title="Ir al saque (Inicio)" aria-label="Ir al saque">⏮</button>
+          <button class="btn" id="bPrev" title="Paso anterior (←)" aria-label="Paso anterior">◀</button>
+          <button class="btn" id="bNext" title="Animar siguiente paso (→)" aria-label="Siguiente paso">▶</button>
+          <button class="btn primary" id="bPlay" title="Reproducir jugada (espacio)">Reproducir</button>
+          <button class="btn" id="bUndo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">↶</button>
+          <button class="btn" id="bRedo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer">↷</button>
+        </div>
+        <div class="pills" id="pills"></div>
+        <label class="speed">Velocidad
+          <select id="speed"><option value="0.5">0,5×</option><option value="1">1×</option><option value="1.5">1,5×</option><option value="2">2×</option></select>
+        </label>
+      </div>
+
+      <div class="confirm" id="confirm" hidden>
+        <span id="confirmMsg"></span>
+        <button class="btn danger" id="cYes">Sí, continuar</button>
+        <button class="btn" id="cNo">Cancelar</button>
+      </div>
+
+      <div class="faults" id="faults"></div>
+    </section>
+
+    <aside class="panel">
+      <div class="sec" data-sec="equipo">
+        <h2>Equipo</h2>
+        <div class="seg" id="sysSeg">
+          <button class="btn" data-sys="5-1">5-1</button>
+          <button class="btn" data-sys="4-2">4-2</button>
+          <button class="btn" data-sys="6-2">6-2</button>
+        </div>
+        <div class="row" style="margin-top:10px"><div class="rots" id="rots"></div></div>
+        <div class="row">
+          <label class="tog"><input type="checkbox" id="optLib"> Líbero en lugar de la central zaguera</label>
+        </div>
+        <div class="row">
+          <button class="btn" id="bRotate">Rotar ↻</button>
+          <button class="btn" id="bReset">Restaurar salidas</button>
+        </div>
+        <p class="hint">Cada rotación arranca con una recepción a tres legal y varias salidas de ataque ya preparadas.</p>
+      </div>
+
+      <div class="sec" data-sec="salida">
+        <h2>Salida y pasos</h2>
+        <label class="hd" for="varName" style="font-size:.8rem;color:var(--muted)">Nombre de la salida</label>
+        <input class="field" id="varName" type="text">
+        <div class="row">
+          <button class="btn" id="bDupVar">Duplicar salida</button>
+          <button class="btn danger" id="bDelVar">Borrar salida</button>
+        </div>
+        <label class="hd" for="stepLabel" style="font-size:.8rem;color:var(--muted);display:block;margin-top:12px">Nombre del paso</label>
+        <input class="field" id="stepLabel" type="text">
+        <div class="row">
+          <button class="btn" id="bAddStep">Añadir paso</button>
+          <button class="btn danger" id="bDelStep">Borrar paso</button>
+        </div>
+        <p class="hint">Cambia de salida con un toque en la barra de debajo de la pista. Al mover una ficha, los pasos siguientes donde no se había movido la siguen.</p>
+      </div>
+
+      <div class="sec" data-sec="plantilla">
+        <h2>Plantilla</h2>
+        <div class="row" style="flex-wrap:nowrap">
+          <select class="field" id="teamSel" aria-label="Plantilla activa"></select>
+          <button class="btn" id="bTeamNew">Nueva</button>
+        </div>
+        <div class="row" id="teamTools" style="flex-wrap:nowrap">
+          <input class="field" id="teamName" type="text" placeholder="Nombre del equipo" aria-label="Nombre del equipo">
+          <button class="btn danger" id="bTeamDel">Borrar</button>
+        </div>
+        <div class="roster" id="roster"></div>
+        <p class="hint" id="rosterHint"></p>
+        <div class="sub-h">En las fichas</div>
+        <div class="seg" id="labelSeg">
+          <button class="btn" data-lab="rol">Rol</button>
+          <button class="btn" data-lab="dorsal">Dorsal</button>
+        </div>
+        <label class="tog" style="margin-top:6px"><input type="checkbox" id="optNames"> Nombre debajo de la ficha</label>
+      </div>
+
+      <div class="sec" data-sec="herr">
+        <h2>Herramientas</h2>
+        <div class="seg" id="toolSeg">
+          <button class="btn" data-tool="move">Mover</button>
+          <button class="btn" data-tool="pen">Lápiz</button>
+          <button class="btn" data-tool="arrow">Flecha</button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div class="swatches" id="swatches"></div>
+          <button class="btn danger" id="bClearDraw">Borrar dibujos</button>
+        </div>
+        <p class="hint">Desliza el dedo en horizontal sobre una zona vacía de la pista para pasar de paso.</p>
+      </div>
+
+      <div class="sec" data-sec="vista">
+        <h2>Vista</h2>
+        <div class="seg" id="viewSeg">
+          <button class="btn" data-view="full">Campo completo</button>
+          <button class="btn" data-view="half">Medio campo</button>
+        </div>
+        <div class="seg" id="orientSeg" style="margin-top:8px">
+          <button class="btn" data-o="auto">Pista auto</button>
+          <button class="btn" data-o="v">Vertical</button>
+          <button class="btn" data-o="h">Horizontal</button>
+        </div>
+        <div class="row" style="flex-direction:column;align-items:flex-start;gap:2px;margin-top:8px">
+          <label class="tog"><input type="checkbox" id="optZones"> Zonas de responsabilidad en recepción</label>
+          <label class="tog"><input type="checkbox" id="optRel"> Líneas de orden de rotación</label>
+          <label class="tog"><input type="checkbox" id="optTrails"> Desplazamientos y trayectoria del balón</label>
+          <label class="tog"><input type="checkbox" id="optSound"> Sonido de error</label>
+        </div>
+        <p class="hint">Las zonas se reparten entre las jugadoras a 3,5 m o más de la red en el saque (sin contar a quien coloca), y muestran qué porcentaje de campo cubre cada una.</p>
+      </div>
+
+      <div class="sec" data-sec="tiempos">
+        <h2>Tiempos de saque</h2>
+        <p class="hint" style="margin-top:0">Valores orientativos en segundos. Ajústalos a la categoría o al rival.</p>
+        <div class="tgrid" id="tgrid"></div>
+        <div class="tgrid tgrid2">
+          <label for="inReact">Reacción (s)</label><input class="field" id="inReact" inputmode="decimal">
+          <label for="inSpd">Desplazamiento (m/s)</label><input class="field" id="inSpd" inputmode="decimal">
+        </div>
+        <div class="row"><button class="btn" id="bTimesReset">Restaurar valores</button></div>
+        <p class="hint">El destino de cada jugadora es su posición en el paso 2 de la salida. El círculo muestra hasta dónde puede llegar en el tiempo disponible.</p>
+      </div>
+
+      <div class="sec" data-sec="examen">
+        <h2>Modo examen</h2>
+        <p class="hint" style="margin-top:0">La pizarra coloca una rotación al azar, con o sin falta. Hay que decir si es legal y, si no lo es, tocar a una jugadora mal colocada.</p>
+        <div class="row" style="margin-top:8px">
+          <button class="btn primary" id="bExam">Empezar examen</button>
+        </div>
+      </div>
+
+      <div class="sec" data-sec="jugadas">
+        <h2>Jugadas guardadas</h2>
+        <div class="row" style="flex-wrap:nowrap">
+          <input class="field" id="playName" type="text" placeholder="Nombre de la jugada" aria-label="Nombre de la jugada">
+          <button class="btn primary" id="bSave">Guardar</button>
+        </div>
+        <ul class="plays" id="plays"></ul>
+        <p class="hint" id="playsHint"></p>
+        <div class="row">
+          <button class="btn" id="bExport">Copiar código</button>
+          <button class="btn" id="bImport">Cargar código pegado</button>
+        </div>
+        <textarea class="field" id="code" style="margin-top:8px" placeholder="Aquí aparece el código de la jugada, o pega uno para cargarlo." aria-label="Código de la jugada"></textarea>
+      </div>
+
+      <div class="sec" data-sec="normas">
+        <h2>Normas</h2>
+        <label for="tolSel" style="font-size:.85rem;color:var(--muted)">Referencia de los pies</label>
+        <select class="field" id="tolSel">
+          <option value="centro">Centro de la ficha</option>
+          <option value="estricto">Estricto (30 cm de margen)</option>
+          <option value="permisivo">Permisivo (basta parte de un pie, 25 cm)</option>
+        </select>
+        <p class="hint">Estricto pide separación clara entre parejas. Permisivo acepta que se solapen un poco, como permite el reglamento si una parte del pie queda por delante.</p>
+        <div class="legend" style="margin-top:10px">
+          <span><i class="dot" style="background:#f3c33d"></i>Colocador/a</span>
+          <span><i class="dot" style="background:#f5f3ec"></i>Receptor/a</span>
+          <span><i class="dot" style="background:#28408f"></i>Central</span>
+          <span><i class="dot" style="background:#7cc3df"></i>Opuesto/a</span>
+          <span><i class="dot" style="background:#2f9d62"></i>Líbero</span>
+          <span><i class="dot" style="background:#222"></i>Sacador rival</span>
+        </div>
+        <ul class="rules">
+          <li>Cada delantera (Z4, Z3, Z2) más cerca de la red que su zaguera (Z5, Z6, Z1).</li>
+          <li>En cada línea, de izquierda a derecha: Z4 · Z3 · Z2 y Z5 · Z6 · Z1.</li>
+          <li>Todas dentro del campo en el momento en que se comprueba el orden.</li>
+          <li><strong>Regla de prueba FIVB 2026:</strong> el orden se comprueba en el silbato del árbitro. En cuanto el sacador inicia su acción, las receptoras ya pueden moverse.</li>
+          <li><strong>Regla clásica:</strong> el orden se comprueba en el golpe de saque y solo después hay libertad de movimiento.</li>
+          <li>En las dos, el equipo que saca puede colocarse libremente (cambio de 2025).</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const NET=9;
+const VIEW={full:'-2 -3 13 24',half:'-2 6.4 13 14.6'};
+const VIEWH={full:'-3 -11 24 13',half:'6.4 -11 14.6 13'};
+const TOL={centro:0,estricto:.3,permisivo:-.25};
+const LS={get(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const f=n=>Math.round(n*1000)/1000;
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cp=o=>JSON.parse(JSON.stringify(o));
+const rnd=(a,b)=>a+Math.random()*(b-a);
+
+const SYS={
+  '5-1':{base:['S','OH1','MB1','OPP','OH2','MB2']},
+  '4-2':{base:['S1','OH1','MB1','S2','OH2','MB2']},
+  '6-2':{base:['S1','OH1','MB1','S2','OH2','MB2']}
+};
+const LABEL={S:'C',S1:'C1',S2:'C2',OH1:'R1',OH2:'R2',MB1:'Ce1',MB2:'Ce2',OPP:'O',L:'L'};
+const RNAME={S:'Colocador/a',S1:'Colocador/a 1',S2:'Colocador/a 2',OH1:'Receptor/a 1',OH2:'Receptor/a 2',MB1:'Central 1',MB2:'Central 2',OPP:'Opuesto/a',L:'Líbero'};
+const RCOL={set:'#f3c33d',oh:'#f5f3ec',mb:'#28408f',opp:'#7cc3df',lib:'#2f9d62'};
+const ROLE=id=>id[0]==='S'?'set':id.startsWith('OH')?'oh':id.startsWith('MB')?'mb':id==='OPP'?'opp':'lib';
+// Recepción a tres legal por rotación (k = rotaciones desde colocador en Z1). [x desde banda izquierda, metros desde la red]
+const PRESET=[
+  {1:[8.2,6.0],2:[7.0,5.2],3:[4.5,1.0],4:[1.0,1.0],5:[1.8,6.0],6:[4.5,6.5]},
+  {1:[7.4,6.0],2:[8.0,0.8],3:[5.5,0.8],4:[1.6,5.0],5:[4.5,6.0],6:[6.2,1.6]},
+  {1:[7.2,6.0],2:[8.3,0.8],3:[2.0,5.0],4:[0.8,0.8],5:[1.2,1.8],6:[4.6,6.0]},
+  {1:[8.4,5.6],2:[7.2,5.0],3:[4.0,0.6],4:[1.5,0.6],5:[1.8,6.0],6:[4.5,6.3]},
+  {1:[7.4,6.0],2:[8.2,0.6],3:[5.6,0.6],4:[1.6,5.0],5:[4.5,6.0],6:[6.2,1.4]},
+  {1:[7.2,6.2],2:[8.3,0.6],3:[2.0,5.0],4:[0.8,0.8],5:[1.2,1.8],6:[4.6,6.0]}
+];
+const FB=[[4,5],[3,6],[2,1]], LR=[[4,3],[3,2],[5,6],[6,1]];
+const ZPOS={1:[7.5,16.5],2:[7.5,10.6],3:[4.5,10.6],4:[1.5,10.6],5:[1.5,16.5],6:[4.5,16.5]};
+const ROMAN={1:'I',2:'II',3:'III',4:'IV',5:'V',6:'VI'};
+const COLORS=['#ffffff','#ffe066','#1b1b1b','#ff6bd6','#3ad1e0'];
+const ZCOL=['#ffe066','#7cf0c8','#ff9ad5','#9ec5ff','#ffb36b','#c9a7ff'];
+
+function lineup(sys,k,lib){
+  return SYS[sys].base.map((id,i)=>{
+    const z=((i-k)%6+6)%6+1;
+    const pid=(lib&&id.startsWith('MB')&&(z===1||z===5||z===6))?'L':id;
+    return {id:pid,zone:z};
+  });
+}
+function setterWhoSets(sys,k,lib){
+  if(sys==='5-1') return 'S';
+  const lu=lineup(sys,k,lib).filter(p=>p.id[0]==='S');
+  const front=p=>p.zone>=2&&p.zone<=4;
+  const s=sys==='4-2'?lu.find(front):lu.find(p=>!front(p));
+  return (s||lu[0]).id;
+}
+function setterZoneLabel(sys,k){const lu=lineup(sys,k,false);const id=sys==='5-1'?'S':'S1';return {who:LABEL[id],zone:lu.find(p=>p.id===id).zone}}
+
+/* ---------- Salidas por defecto ---------- */
+function genVariants(sys,k,lib){
+  const lu=lineup(sys,k,lib);
+  const back=z=>z===1||z===5||z===6;
+  const P0={};lu.forEach(p=>{const [x,d]=PRESET[k][p.zone];P0[p.id]=[x,NET+d]});
+  const setter=setterWhoSets(sys,k,lib);
+  const recP=lib?lu.find(p=>p.id==='L'):(lu.find(p=>p.id.startsWith('OH')&&back(p.zone))||lu.find(p=>p.id.startsWith('OH')));
+  const P1=cp(P0);P1[setter]=[6.0,NET+1.4];
+  const slotOf=id=>id.startsWith('OH')?0:id.startsWith('MB')?1:2;
+  const FR={};lu.filter(p=>p.zone>=2&&p.zone<=4&&p.id!==setter).forEach(p=>FR[slotOf(p.id)]=p.id);
+  const backs=lu.filter(p=>back(p.zone)&&p.id!==setter).map(p=>p.id);
+  const pipeId=(lu.find(p=>back(p.zone)&&p.id.startsWith('OH'))||{}).id;
+  const appr={0:[0.6,3.6],1:[4.4,3.0],2:[8.6,3.6]}, hit={0:[1.2,0.9],1:[5.0,0.8],2:[8.0,1.0]};
+  const recBall=[P0[recP.id][0],P0[recP.id][1]-0.35], setBall=[6.0,NET+0.5];
+  function make(type){
+    const P2=cp(P1);P2[setter]=[6.0,NET+0.7];
+    for(const s in FR)P2[FR[s]]=[appr[s][0],NET+appr[s][1]];
+    if(type==='quick')P2[FR[1]]=[5.0,NET+2.0];
+    if(type==='pipe')P2[pipeId]=[4.6,NET+6.8];
+    const P3=cp(P2);
+    for(const s in FR)P3[FR[s]]=[hit[s][0],NET+hit[s][1]];
+    backs.forEach(id=>{if(!(type==='pipe'&&id===pipeId))P3[id]=[P2[id][0],NET+4.8]});
+    let hb,tg;
+    if(type==='p4'){hb=[1.1,NET+0.45];tg=[6.8,4.0]}
+    else if(type==='quick'){P3[FR[1]]=[5.3,NET+0.7];hb=[5.2,NET+0.4];tg=[3.0,3.2]}
+    else if(type==='p2'){hb=[8.1,NET+0.45];tg=[2.2,4.2]}
+    else{P3[pipeId]=[4.6,NET+3.8];hb=[4.6,NET+3.55];tg=[4.6,2.6]}
+    return [
+      {label:'Silbato',P:cp(P0),ball:null,draw:[]},
+      {label:'Recepción',P:cp(P1),ball:recBall.slice(),draw:[]},
+      {label:'Colocación',P:P2,ball:setBall.slice(),draw:[]},
+      {label:'Ataque',P:P3,ball:hb,draw:[]},
+      {label:'Remate',P:cp(P3),ball:tg,draw:[]}];
+  }
+  const v=[{name:'Por 4',steps:make('p4')}];
+  if(FR[1])v.push({name:'Rápida',steps:make('quick')});
+  if(FR[2])v.push({name:'Por 2',steps:make('p2')});
+  if(pipeId)v.push({name:'Pipe',steps:make('pipe')});
+  return v;
+}
+function freshState(sys='5-1',k=0,lib=true){const v=genVariants(sys,k,lib);return {system:sys,rot:k,libero:lib,srv:[4.5,-1.2],variants:v,vi:0,steps:v[0].steps,cur:0,dirty:false,name:''}}
+function serial(){return {v:2,system:S.system,rot:S.rot,libero:S.libero,srv:S.srv,variants:S.variants,vi:S.vi,name:S.name||''}}
+function normalize(d){
+  if(!d||!SYS[d.system]||!Number.isInteger(d.rot)||d.rot<0||d.rot>5)return null;
+  let vs=d.variants;
+  if(!Array.isArray(vs)){if(Array.isArray(d.steps))vs=[{name:'Salida',steps:d.steps}];else return null}
+  vs=cp(vs).filter(v=>v&&Array.isArray(v.steps)&&v.steps.length&&v.steps.every(s=>s&&s.P));
+  if(!vs.length)return null;
+  const lib=!!d.libero;const ids=lineup(d.system,d.rot,lib).map(p=>p.id);
+  for(const v of vs){v.name=String(v.name||'Salida').slice(0,30);
+    v.steps.forEach((s,i)=>{s.draw=Array.isArray(s.draw)?s.draw:[];s.label=String(s.label||`Paso ${i+1}`);if(i===0)s.ball=null;else if(!Array.isArray(s.ball))s.ball=[4.5,12]});
+    for(const s of v.steps)for(const id of ids)if(!Array.isArray(s.P[id]))return null}
+  const vi=Math.min(Math.max(0,d.vi|0),vs.length-1);
+  return {system:d.system,rot:d.rot,libero:lib,srv:Array.isArray(d.srv)?d.srv:[4.5,-1.2],variants:vs,vi,steps:vs[vi].steps,cur:0,dirty:false,name:String(d.name||'')};
+}
+function defaultName(){const s=setterZoneLabel(S.system,S.rot);return `K1 ${S.system} · ${s.who} en zona ${s.zone}`}
+
+let S=normalize(LS.get('pizarraK1.borrador'))||freshState();
+const DEF_ST={float:{a:1.2,f:1.2},jfloat:{a:2.0,f:1.0},power:{a:2.5,f:0.6}};
+const SV_NAME={float:'Flotante desde el suelo',jfloat:'Flotante en salto',power:'Saque en potencia'};
+let opt=Object.assign({rule:'prueba',serve:'float',st:cp(DEF_ST),react:.25,spd:3.0,tool:'move',color:'#ffffff',view:'full',orient:'auto',rel:true,trails:true,zones:false,sound:true,speed:1,tol:'centro',lab:'rol',names:true,team:''},LS.get('pizarraK1.opt')||{});
+if(!(opt.tol in TOL))opt.tol='centro';
+if(!['prueba','clasica'].includes(opt.rule))opt.rule='prueba';if(!SV_NAME[opt.serve])opt.serve='float';
+opt.st=Object.assign(cp(DEF_ST),opt.st||{});for(const k in DEF_ST){const v=opt.st[k];if(!v||!(v.a>=0)||!(v.f>0))opt.st[k]=cp(DEF_ST[k])}
+if(!(opt.react>=0))opt.react=.25;if(!(opt.spd>0))opt.spd=3.0;
+const MOMENT=()=>opt.rule==='prueba'?'en el silbato':'en el golpe de saque';
+let rosters=LS.get('pizarraK1.plantillas')||[];
+const team=()=>rosters.find(t=>t.id===opt.team)||null;
+
+const svg=$('#court');
+let drag=null,stroke=null,swipe=null,anim=null,playing=false,confirmYes=null,exam=null;
+let H=false,TR=0;
+function isH(){
+  if(opt.orient==='v')return false;if(opt.orient==='h')return true;
+  const land=innerWidth>innerHeight*1.05;
+  return land&&($('#app').classList.contains('present')||innerHeight<620||innerWidth<900);
+}
+function ballOf(i){return i===0?[S.srv[0]+0.48,S.srv[1]+0.05]:S.steps[i].ball}
+
+/* ---------- Faltas de posición ---------- */
+function checkFaults(P){
+  P=P||S.steps[0].P;const T=TOL[opt.tol];
+  const lu=lineup(S.system,S.rot,S.libero);const by={};lu.forEach(p=>by[p.zone]=p);
+  const nm=z=>`Z${z} (${chipName(by[z].id)})`;const out=[];
+  for(const p of lu){if(!P[p.id])return out}
+  FB.forEach(([fz,bz])=>{const a=P[by[fz].id],b=P[by[bz].id];
+    if(!(b[1]-a[1]>T))out.push({key:`fb${fz}${bz}`,ids:[by[fz].id,by[bz].id],msg:`${nm(bz)} tiene que estar más lejos de la red que ${nm(fz)}.`})});
+  LR.forEach(([l,r])=>{const a=P[by[l].id],b=P[by[r].id];
+    if(!(b[0]-a[0]>T))out.push({key:`lr${l}${r}`,ids:[by[l].id,by[r].id],msg:`${nm(l)} tiene que estar a la izquierda de ${nm(r)}.`})});
+  lu.forEach(p=>{const q=P[p.id];if(q[0]<0||q[0]>9||q[1]<NET||q[1]>18)out.push({key:'out'+p.zone,ids:[p.id],msg:`${nm(p.zone)} está fuera del campo ${MOMENT()}.`})});
+  return out;
+}
+function chipName(id){const t=team();const r=t&&t.p&&t.p[id];const n=r&&r.n&&r.n.trim();return n?`${LABEL[id]} ${n}`:LABEL[id]}
+function legalBox(id){
+  const lu=lineup(S.system,S.rot,S.libero);const P=S.steps[0].P;const by={};lu.forEach(p=>by[p.zone]=p.id);const T=TOL[opt.tol];
+  const z=lu.find(p=>p.id===id).zone;let x0=0,x1=9,y0=NET,y1=18;
+  const BACK={4:5,3:6,2:1},FRONT={5:4,6:3,1:2};
+  if(BACK[z])y1=Math.min(y1,P[by[BACK[z]]][1]-T);
+  if(FRONT[z])y0=Math.max(y0,P[by[FRONT[z]]][1]+T);
+  const row=[2,3,4].includes(z)?[4,3,2]:[5,6,1];const i=row.indexOf(z);
+  if(i>0)x0=Math.max(x0,P[by[row[i-1]]][0]+T);
+  if(i<2)x1=Math.min(x1,P[by[row[i+1]]][0]-T);
+  return {x0,x1,y0,y1};
+}
+
+/* ---------- Zonas de responsabilidad ---------- */
+function clipHalf(poly,m,d){const out=[];for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length];
+  const fa=(a[0]-m[0])*d[0]+(a[1]-m[1])*d[1],fb=(b[0]-m[0])*d[0]+(b[1]-m[1])*d[1];
+  if(fa<=0)out.push(a);if((fa<=0)!==(fb<=0)){const t=fa/(fa-fb);out.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t])}}return out}
+function zonesSvg(P){
+  const setter=setterWhoSets(S.system,S.rot,S.libero);
+  const rec=lineup(S.system,S.rot,S.libero).filter(p=>p.id!==setter&&P[p.id][1]>=NET+3.5).map(p=>p.id);
+  if(!rec.length)return '';
+  const Y0=NET+2.5,rect=[[0,Y0],[9,Y0],[9,18],[0,18]],total=9*(18-Y0);let h='';
+  rec.forEach((r,i)=>{let poly=rect;const pr=P[r];
+    rec.forEach(o=>{if(o===r)return;const po=P[o];const m=[(pr[0]+po[0])/2,(pr[1]+po[1])/2],d=[po[0]-pr[0],po[1]-pr[1]];if(Math.hypot(d[0],d[1])<1e-6)return;poly=clipHalf(poly,m,d)});
+    if(poly.length<3)return;
+    let A=0,cx=0,cy=0;for(let j=0;j<poly.length;j++){const a=poly[j],b=poly[(j+1)%poly.length],c=a[0]*b[1]-b[0]*a[1];A+=c;cx+=(a[0]+b[0])*c;cy+=(a[1]+b[1])*c}
+    A/=2;if(Math.abs(A)<1e-6)return;cx/=6*A;cy/=6*A;
+    const col=ZCOL[i%ZCOL.length];
+    h+=`<polygon class="zone" fill="${col}" stroke="${col}" points="${poly.map(q=>f(q[0])+','+f(q[1])).join(' ')}"/>`;
+    h+=`<g transform="translate(${f(cx)} ${f(cy+(Math.abs(cy-pr[1])<.9?.95:0))}) rotate(${TR})"><text class="zpct">${Math.round(Math.abs(A)/total*100)}%</text></g>`;
+  });
+  return h;
+}
+
+/* ---------- Dibujo de la pista ---------- */
+function head(x,y,ux,uy,s,cls,fill){const px=-uy,py=ux,bx=x-ux*s,by=y-uy*s;
+  return `<polygon class="${cls||''}" ${fill?`fill="${fill}"`:''} points="${f(x)},${f(y)} ${f(bx+px*s*.55)},${f(by+py*s*.55)} ${f(bx-px*s*.55)},${f(by-py*s*.55)}"/>`}
+function ctrl(a,b){const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2,dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1,k=.18*L;return [mx-dy/L*k,my+dx/L*k]}
+function quad(a,c,b,t){const u=1-t;return [u*u*a[0]+2*u*t*c[0]+t*t*b[0],u*u*a[1]+2*u*t*c[1]+t*t*b[1]]}
+function base(){
+  let h=`<rect class="free" x="-2" y="-3" width="13" height="24"/><rect class="floor" x="0" y="0" width="9" height="18"/>`;
+  for(const z in ZPOS)h+=`<g transform="translate(${ZPOS[z][0]} ${ZPOS[z][1]}) rotate(${TR})"><text class="zn">${ROMAN[z]}</text></g>`;
+  h+=`<rect class="cl" x="0" y="0" width="9" height="18"/><line class="cl" x1="0" y1="6" x2="9" y2="6"/><line class="cl" x1="0" y1="12" x2="9" y2="12"/><line class="cl" x1="0" y1="9" x2="9" y2="9"/>`;
+  for(const yy of [6,12])h+=`<line class="cl" x1="-1.75" y1="${yy}" x2="-.25" y2="${yy}" stroke-dasharray=".15 .2"/><line class="cl" x1="9.25" y1="${yy}" x2="10.75" y2="${yy}" stroke-dasharray=".15 .2"/>`;
+  h+=`<line class="net" x1="-1" y1="9" x2="10" y2="9"/><line class="netl" x1="-1" y1="9" x2="10" y2="9"/><circle class="post" cx="-1" cy="9" r=".14"/><circle class="post" cx="10" cy="9" r=".14"/>`;
+  h+=`<text class="slbl" x="4.5" y="3.2">RIVAL</text><text class="slbl" x="4.5" y="19.9">NUESTRO EQUIPO · RECEPCIÓN</text>`;
+  return h;
+}
+function chipText(id){if(opt.lab==='dorsal'){const t=team(),r=t&&t.p&&t.p[id];if(r&&String(r.d||'').trim())return String(r.d).trim().slice(0,3)}return LABEL[id]}
+function chip(id,p,zone,bad,pick){
+  const t=team(),r=t&&t.p&&t.p[id],nm=opt.names&&r&&r.n?String(r.n).trim().slice(0,11):'';
+  return `<g class="chip r-${ROLE(id)}${bad?' bad':''}${pick?' pick':''}${drag&&drag.id===id?' dragging':''}" data-id="${id}" transform="translate(${f(p[0])} ${f(p[1])})"><circle class="hit" r=".75"/>${bad?'<circle class="halo" r=".66"/>':''}<circle class="body" r=".44"/><g transform="rotate(${TR})"><text>${esc(chipText(id))}</text>${zone?`<g class="zb" transform="translate(.38 -.38)"><circle r=".2"/><text>${zone}</text></g>`:''}${nm?`<text class="pname" y=".74">${esc(nm)}</text>`:''}</g></g>`;
+}
+function ballSvg(b,sc,dragg){
+  return `<g class="ball"${dragg?' data-id="ball"':''} transform="translate(${f(b[0])} ${f(b[1])}) scale(${f(sc)})"><circle r=".6" fill="transparent"/><circle r=".21" fill="#fdf6d8" stroke="#1d3f8f" stroke-width=".035"/><path d="M-.2 0Q0-.09.2 0M0-.2Q.09 0 0 .2" stroke="#1d3f8f" stroke-width=".03" fill="none"/></g>`;
+}
+function strokeSvg(d){
+  if(d.t==='arrow'){const [a,b]=d.pts;const dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L,ex=b[0]-ux*.2,ey=b[1]-uy*.2;
+    return `<line x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(ex)}" y2="${f(ey)}" stroke="${esc(d.c)}" stroke-width=".1" stroke-linecap="round"/>${head(b[0],b[1],ux,uy,.4,'',esc(d.c))}`}
+  return `<path d="M${d.pts.map(p=>f(p[0])+','+f(p[1])).join('L')}" fill="none" stroke="${esc(d.c)}" stroke-width=".1" stroke-linecap="round" stroke-linejoin="round"/>`;
+}
+function drawCourt(){
+  H=isH();TR=H?90:0;$('#app').classList.toggle('horiz',H);
+  const F=(anim&&anim.frame)||simHold;const step=S.steps[S.cur];const P=F?F.P:step.P;
+  const lu=lineup(S.system,S.rot,S.libero);const zOf={};lu.forEach(p=>zOf[p.id]=p.zone);
+  const hide=exam&&exam.phase!=='reveal';
+  const at0=!F&&S.cur===0;const faults=checkFaults();const bad=new Set();
+  if(at0&&!hide)faults.forEach(x=>x.ids.forEach(i=>bad.add(i)));
+  let h=base();
+  if(at0&&opt.zones&&!hide)h+=zonesSvg(P);
+  if(at0&&!hide){const by={};lu.forEach(p=>by[p.zone]=p.id);const bk=new Set(faults.map(x=>x.key));
+    [...FB.map(p=>['fb',...p]),...LR.map(p=>['lr',...p])].forEach(([t,a,b])=>{const k=`${t}${a}${b}`;if(!opt.rel&&!bk.has(k))return;
+      const p=P[by[a]],q=P[by[b]];h+=`<line class="rel${bk.has(k)?' bad':''}" x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(q[0])}" y2="${f(q[1])}"/>`});
+  }
+  if(at0&&!exam&&drag&&zOf[drag.id]){const bx=legalBox(drag.id);
+    if(bx.x1-bx.x0>.02&&bx.y1-bx.y0>.02){h+=`<rect class="legal" x="${f(bx.x0)}" y="${f(bx.y0)}" width="${f(bx.x1-bx.x0)}" height="${f(bx.y1-bx.y0)}"/>`;
+      h+=`<g transform="translate(${f((bx.x0+bx.x1)/2)} ${f(bx.y1-.25)}) rotate(${TR})"><text class="legall" text-anchor="middle">ZONA LEGAL</text></g>`}}
+  if(!F&&S.cur>0&&opt.trails){
+    const A=S.steps[S.cur-1].P;
+    for(const id in P){const a=A[id],b=P[id];if(!a)continue;const dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy);if(L<.3)continue;
+      const ux=dx/L,uy=dy/L,x2=b[0]-ux*.5,y2=b[1]-uy*.5;
+      h+=`<circle class="ghost" cx="${f(a[0])}" cy="${f(a[1])}" r=".42"/>`;
+      if(L>1)h+=`<line class="mv" x1="${f(a[0]+ux*.45)}" y1="${f(a[1]+uy*.45)}" x2="${f(x2)}" y2="${f(y2)}"/>${head(x2,y2,ux,uy,.28,'mvh')}`}
+    const a=ballOf(S.cur-1),b=ballOf(S.cur),c=ctrl(a,b);const tx=b[0]-c[0],ty=b[1]-c[1],L=Math.hypot(tx,ty)||1,ux=tx/L,uy=ty/L,ex=b[0]-ux*.24,ey=b[1]-uy*.24;
+    h+=`<path class="traj" d="M${f(a[0])},${f(a[1])}Q${f(c[0])},${f(c[1])} ${f(ex)},${f(ey)}"/>${head(ex,ey,ux,uy,.34,'trajh')}`;
+  }
+  if(!F){step.draw.forEach(d=>h+=strokeSvg(d));if(stroke&&stroke.pts.length>1)h+=strokeSvg(stroke)}
+  const SM=F&&F.sim;
+  if(SM){
+    SM.movers.forEach(m=>{h+=`<line class="tgtl" x1="${f(m.a[0])}" y1="${f(m.a[1])}" x2="${f(m.b[0])}" y2="${f(m.b[1])}"/><circle class="tgt" cx="${f(m.b[0])}" cy="${f(m.b[1])}" r=".42"/>`});
+    if(SM.r>0)SM.circles.forEach(c=>{h+=`<circle class="reach" cx="${f(c[0])}" cy="${f(c[1])}" r="${f(SM.r)}"/>`});
+  }
+  const srvP=(F&&F.srv)||S.srv;
+  if(!exam)h+=`<g class="chip srv" data-id="srv" transform="translate(${f(srvP[0])} ${f(srvP[1])})"><circle class="hit" r=".75"/><circle class="body" r=".4"/><g transform="rotate(${TR})"><text>S</text><text class="srvl" y="-.6">saque rival</text></g></g>`;
+  const ids=lu.map(p=>p.id);if(drag&&ids.includes(drag.id)){ids.splice(ids.indexOf(drag.id),1);ids.push(drag.id)}
+  ids.forEach(id=>{if(!P[id])return;let c=chip(id,P[id],at0?zOf[id]:null,bad.has(id),exam&&exam.picked===id);
+    if(SM&&SM.done){const m=SM.movers.find(x=>x.id===id);if(m)c=c.replace('class="chip ',`class="chip ${m.ok?'made':'late'} `)}
+    h+=c});
+  if(!exam)h+=F?ballSvg(F.ball,F.bs,false):ballSvg(ballOf(S.cur),1,S.cur>0);
+  svg.setAttribute('viewBox',(H?VIEWH:VIEW)[opt.view]);
+  svg.innerHTML=`<g id="world"${H?' transform="rotate(-90)"':''}>${h}</g>`;
+}
+
+/* ---------- Estado y avisos ---------- */
+function renderStatus(){
+  const fl=checkFaults();const st=$('#status'),toast=$('#toast'),box=$('#faults');
+  if(exam){st.className='status exam';st.textContent=`Examen · ${exam.ok}/${exam.total}`;
+    if(exam.phase==='reveal'&&exam.fault){toast.hidden=false;toast.innerHTML=`<b>Falta de posición</b>${fl.map(x=>esc(x.msg)).join('<br>')}`}else toast.hidden=true;
+    return}
+  st.className='status '+(fl.length?'bad':'ok');
+  st.textContent=fl.length?`Falta de posición (${fl.length})`:(opt.rule==='prueba'?'Silbato: posición legal':'Saque: posición legal');
+  if(S.cur===0&&fl.length){toast.hidden=false;toast.innerHTML=`<b>Falta de posición</b>${fl.map(x=>esc(x.msg)).join('<br>')}`}else toast.hidden=true;
+  if(S.cur===0){
+    if(fl.length){box.className='faults bad';box.innerHTML=`<h3>Falta de posición ${MOMENT()}</h3><ul>${fl.map(x=>`<li>${esc(x.msg)}</li>`).join('')}</ul>`}
+    else{box.className='faults ok';box.innerHTML=`<h3>Posición legal</h3><p>Las seis jugadoras respetan el orden de rotación. Al arrastrar una ficha verás en verde dónde puede colocarse.</p>`}
+  }else{
+    box.className='faults'+(fl.length?' bad':'');
+    box.innerHTML=`<h3>${esc(S.variants[S.vi].name)} · ${esc(S.steps[S.cur].label)} (paso ${S.cur+1} de ${S.steps.length})</h3><p>Tras el golpe de saque cada jugadora se mueve libremente: aquí no hay faltas de posición.${fl.length?' <strong style="color:var(--fault)">Ojo: el paso 1 de esta salida tiene falta de posición.</strong>':''}</p>`;
+  }
+}
+function renderVarbar(){
+  $('#varbar').innerHTML=`<span class="lbl">Salida</span>`+S.variants.map((v,i)=>`<button class="vchip${i===S.vi?' on':''}${checkFaults(v.steps[0].P).length?' bad':''}" data-v="${i}">${esc(v.name)}</button>`).join('')+`<button class="vchip add" id="bAddVar" title="Nueva salida a partir de la actual">+ Nueva</button>`;
+  const on=$('#varbar .vchip.on'),vb=$('#varbar');if(on){const l=on.offsetLeft-vb.offsetLeft,r=l+on.offsetWidth;if(l<vb.scrollLeft)vb.scrollLeft=l-8;else if(r>vb.scrollLeft+vb.clientWidth)vb.scrollLeft=r-vb.clientWidth+8}
+}
+function renderSteps(){
+  const fl=checkFaults().length;
+  $('#pills').innerHTML=S.steps.map((s,i)=>`<button class="pill${i===S.cur?' on':''}${i===0&&fl?' bad':''}" data-i="${i}"><b>${i+1}</b>${esc(s.label)}</button>`).join('');
+  const on=$('#pills .pill.on'),pb=$('#pills');
+  if(on){const l=on.offsetLeft-pb.offsetLeft,r=l+on.offsetWidth;if(l<pb.scrollLeft)pb.scrollLeft=l-8;else if(r>pb.scrollLeft+pb.clientWidth)pb.scrollLeft=r-pb.clientWidth+8}
+  if(document.activeElement!==$('#stepLabel'))$('#stepLabel').value=S.steps[S.cur].label;
+  if(document.activeElement!==$('#varName'))$('#varName').value=S.variants[S.vi].name;
+  $('#bDelStep').disabled=S.cur===0||S.steps.length<2;$('#bDelVar').disabled=S.variants.length<2;
+  $('#bPrev').disabled=S.cur===0;$('#bFirst').disabled=S.cur===0;
+  $('#bNext').disabled=S.cur>=S.steps.length-1;
+  $('#bPlay').textContent=playing?'Pausa':'Reproducir';
+  $('#bUndo').disabled=!undoS.length;$('#bRedo').disabled=!redoS.length;
+  renderVarbar();setCap(S.cur);
+}
+function setCap(i,moving){
+  if(exam){const s=setterZoneLabel(S.system,S.rot);$('#cap').textContent=`Examen · ${S.system} · ${s.who} en zona ${s.zone}`;return}
+  const tool=opt.tool==='pen'?'Lápiz activo':opt.tool==='arrow'?'Flecha activa':'';
+  $('#cap').innerHTML=`${esc(S.variants[S.vi].name)} · ${i+1}/${S.steps.length} ${esc(S.steps[i].label)}${moving?' …':''}${tool&&!moving?`<em>${tool}</em>`:''}`;
+}
+let rosterKey='';
+function renderRoster(force){
+  const t=team();const key=S.system+'|'+(t?t.id:'');
+  $('#teamSel').innerHTML=`<option value="">Sin plantilla</option>`+rosters.map(r=>`<option value="${esc(r.id)}"${t&&r.id===t.id?' selected':''}>${esc(r.name)}</option>`).join('');
+  $('#teamTools').hidden=!t;
+  if(t&&document.activeElement!==$('#teamName'))$('#teamName').value=t.name;
+  if(!force&&key===rosterKey)return;rosterKey=key;
+  if(!t){$('#roster').innerHTML='';$('#rosterHint').textContent='Crea una plantilla para poner dorsales y nombres a las fichas. Puedes tener una por equipo.';return}
+  $('#rosterHint').textContent='Los datos se guardan en este navegador.';
+  const ids=[...SYS[S.system].base,'L'];
+  $('#roster').innerHTML=`<span class="hd">Puesto</span><span class="hd">Dorsal</span><span class="hd">Nombre</span>`+ids.map(id=>{const r=(t.p&&t.p[id])||{};
+    return `<span class="rl"><i class="dot" style="background:${RCOL[ROLE(id)]}"></i><span>${LABEL[id]} · ${RNAME[id]}</span></span><input class="field" inputmode="numeric" maxlength="3" data-rid="${id}" data-k="d" value="${esc(r.d||'')}" aria-label="Dorsal ${RNAME[id]}"><input class="field" maxlength="20" data-rid="${id}" data-k="n" value="${esc(r.n||'')}" aria-label="Nombre ${RNAME[id]}">`}).join('');
+}
+function renderControls(){
+  document.querySelectorAll('#sysSeg .btn').forEach(b=>b.classList.toggle('on',b.dataset.sys===S.system));
+  $('#rots').innerHTML=[0,1,2,3,4,5].map(k=>{const s=setterZoneLabel(S.system,k);return `<button class="btn${k===S.rot?' on':''}" data-k="${k}"><strong>Rot. ${s.zone}</strong><small>${s.who} en zona ${s.zone}</small></button>`}).join('');
+  $('#optLib').checked=S.libero;
+  document.querySelectorAll('#toolSeg .btn').forEach(b=>b.classList.toggle('on',b.dataset.tool===opt.tool));
+  document.querySelectorAll('#viewSeg .btn').forEach(b=>b.classList.toggle('on',b.dataset.view===opt.view));
+  document.querySelectorAll('#orientSeg .btn').forEach(b=>b.classList.toggle('on',b.dataset.o===(opt.orient||'auto')));
+  document.querySelectorAll('#labelSeg .btn').forEach(b=>b.classList.toggle('on',b.dataset.lab===opt.lab));
+  $('#swatches').innerHTML=COLORS.map(c=>`<button class="sw${c===opt.color?' on':''}" data-c="${c}" style="background:${c}" aria-label="Color ${c}"></button>`).join('');
+  $('#optRel').checked=opt.rel;$('#optTrails').checked=opt.trails;$('#optSound').checked=opt.sound;$('#optZones').checked=opt.zones;$('#optNames').checked=opt.names;
+  $('#speed').value=String(opt.speed);$('#tolSel').value=opt.tol;
+  $('#playName').placeholder=defaultName();
+  if(document.activeElement!==$('#playName'))$('#playName').value=S.name||'';
+  $('#app').classList.toggle('tool-pen',opt.tool==='pen');$('#app').classList.toggle('tool-arrow',opt.tool==='arrow');
+  $('#bExam').textContent=exam?'Salir del examen':'Empezar examen';
+  renderRoster();
+}
+function renderAll(){drawCourt();renderStatus();renderSteps();renderControls();renderExam();renderSim()}
+
+/* ---------- Simulador de saque (regla clásica vs prueba FIVB 2026) ---------- */
+let simHold=null;
+const fmt=n=>(Math.round(n*10)/10).toLocaleString('es-ES',{minimumFractionDigits:1,maximumFractionDigits:1});
+function simWindow(rule,sv){return rule==='prueba'?sv.a+sv.f:sv.f}
+function simMovers(){
+  if(S.steps.length<2)return [];
+  const A=S.steps[0].P,B=S.steps[1].P;
+  return lineup(S.system,S.rot,S.libero).map(p=>{const a=A[p.id],b=B[p.id];return {id:p.id,a,b,d:Math.hypot(b[0]-a[0],b[1]-a[1])}}).filter(m=>m.d>.3);
+}
+function reachOf(T){return Math.max(0,T-opt.react)*opt.spd}
+function renderSim(){
+  const sv=opt.st[opt.serve];
+  document.querySelectorAll('#serveSeg .btn').forEach(b=>b.classList.toggle('on',b.dataset.sv===opt.serve));
+  document.querySelectorAll('#ruleSeg .btn').forEach(b=>b.classList.toggle('on',b.dataset.rule===opt.rule));
+  $('#ruleLine').textContent=opt.rule==='prueba'?'Regla de prueba FIVB 2026: el orden se comprueba en el silbato':'Regla clásica: el orden se comprueba en el golpe de saque';
+  const W=.6,tot=W+sv.a+sv.f,pc=x=>x/tot*100,win=simWindow(opt.rule,sv),ws=opt.rule==='prueba'?W:W+sv.a;
+  $('#tl').innerHTML=`<div class="track"><div class="seg-w" style="width:${pc(W)}%">Silbato</div><div class="seg-a" style="width:${pc(sv.a)}%">Acción ${fmt(sv.a)} s</div><div class="seg-f" style="width:${pc(sv.f)}%">Vuelo ${fmt(sv.f)} s</div></div><div class="cur" id="tlCur"></div><div class="win"><div style="left:${pc(ws)}%;width:${pc(win)}%">Movimiento libre ${fmt(win)} s · alcance ${fmt(reachOf(win))} m</div></div>`;
+  // Tabla comparativa
+  const ms=simMovers(),rc=reachOf(simWindow('clasica',sv)),rp=reachOf(simWindow('prueba',sv));
+  const box=$('#simres');
+  if(!ms.length){box.innerHTML=`<h3>${SV_NAME[opt.serve]}</h3><p>Mueve fichas en el paso 2 de la salida para ver si a cada jugadora le da tiempo a llegar.</p>`;return}
+  const cell=(d,r)=>d<=r?`<span class="y">Llega</span>`:`<span class="n">Faltan ${fmt(d-r)} m</span>`;
+  box.innerHTML=`<h3>${SV_NAME[opt.serve]} · ¿llegan a su sitio antes de recibir?</h3><table><thead><tr><th>Jugadora</th><th>Recorrido</th><th>Clásica (${fmt(rc)} m)</th><th>Prueba FIVB (${fmt(rp)} m)</th></tr></thead><tbody>${ms.sort((x,y)=>y.d-x.d).map(m=>`<tr><td>${esc(chipName(m.id))}</td><td>${fmt(m.d)} m</td><td>${cell(m.d,rc)}</td><td>${cell(m.d,rp)}</td></tr>`).join('')}</tbody></table>`;
+}
+function simRun(){
+  if(exam)return;stopAnim();if(S.steps.length<2)return;
+  S.cur=0;renderAll();
+  const sv=cp(opt.st[opt.serve]),serve=opt.serve,W=.6,tMove=opt.rule==='prueba'?0:sv.a,total=sv.a+sv.f;
+  const ms=simMovers().map(m=>({...m,u:[(m.b[0]-m.a[0])/m.d,(m.b[1]-m.a[1])/m.d],ok:false}));
+  const A=S.steps[0].P,B=S.steps[1].P;
+  const setter=setterWhoSets(S.system,S.rot,S.libero);
+  const circleIds=lineup(S.system,S.rot,S.libero).filter(p=>p.id!==setter&&A[p.id][1]>=NET+3.5).map(p=>p.id);
+  ms.forEach(m=>{if(!circleIds.includes(m.id))circleIds.push(m.id)});
+  const s0=S.srv.slice(),s1=[s0[0],s0[1]+(serve==='float'?0:0.9)];
+  const tgt=S.steps[1].ball,hit=[s1[0]+.3,s1[1]+.15];
+  const k=serve==='power'?.07:.14,mx=(hit[0]+tgt[0])/2,my=(hit[1]+tgt[1])/2,dx=tgt[0]-hit[0],dy=tgt[1]-hit[1],L=Math.hypot(dx,dy)||1,cc=[mx-dy/L*k*L,my+dx/L*k*L];
+  const t0=performance.now();anim={};
+  const fr=now=>{
+    const t=((now-t0)/1000)*opt.speed-W;const tc=Math.min(t,total);
+    const P={};for(const id in A)P[id]=A[id].slice();
+    ms.forEach(m=>{const s=Math.max(0,Math.min(m.d,(tc-tMove-opt.react)*opt.spd));P[m.id]=[m.a[0]+m.u[0]*s,m.a[1]+m.u[1]*s];m.ok=s>=m.d-1e-6});
+    const ga=Math.max(0,Math.min(1,tc/sv.a||0));const srv=[s0[0],s0[1]+(s1[1]-s0[1])*ease(ga)];
+    let ball,bs;
+    if(tc<sv.a){ball=[srv[0]+.3,srv[1]+.15];bs=tc<0?1:1+.9*Math.sin(Math.PI*Math.min(1,tc/sv.a))}
+    else{const u=Math.min(1,(tc-sv.a)/sv.f);ball=quad(hit,cc,tgt,u);bs=1+(serve==='power'?.25:.45)*Math.sin(Math.PI*u)}
+    const done=t>=total;
+    anim.frame={P,ball,bs,srv,sim:{movers:ms,circles:circleIds.map(id=>A[id]),r:Math.max(0,(tc-tMove-opt.react)*opt.spd),done}};
+    // Rótulo y cursor
+    const cap=$('#cap');
+    cap.textContent=t<0?'Silbato':tc<sv.a?`Acción del sacador · golpe en ${fmt(sv.a-tc)} s${opt.rule==='clasica'?' · aún sin moverse':''}`:!done?`Balón en el aire · llega en ${fmt(total-tc)} s`:`Recepción · tiempo útil ${fmt(simWindow(opt.rule,sv))} s · ${(n=>n===0?'todas llegan':n===1?'1 no llega':n+' no llegan')(ms.filter(m=>!m.ok).length)}`;
+    const cur=$('#tlCur');if(cur){cur.style.display='block';cur.style.left=`${Math.max(0,Math.min(100,(t+W)/(W+total)*100))}%`}
+    drawCourt();
+    if(!done){anim.raf=requestAnimationFrame(fr)}else{simHold=anim.frame;anim=null;if(ms.some(m=>!m.ok))buzz();else chime()}
+  };
+  anim.raf=requestAnimationFrame(fr);
+}
+
+/* ---------- Deshacer / guardar ---------- */
+let undoS=[],redoS=[];
+const snap=()=>JSON.stringify(Object.assign(serial(),{cur:S.cur}));
+function pushUndo(){if(exam)return;undoS.push(snap());if(undoS.length>80)undoS.shift();redoS=[]}
+function restore(str){const d=JSON.parse(str);const o=normalize(d);if(!o)return;o.cur=Math.min(d.cur||0,o.steps.length-1);o.dirty=true;S=o;resyncKeys();renderAll();autosave()}
+function undo(){if(exam||!undoS.length)return;stopAnim();redoS.push(snap());restore(undoS.pop())}
+function redo(){if(exam||!redoS.length)return;stopAnim();undoS.push(snap());restore(redoS.pop())}
+let saveT;function autosave(){clearTimeout(saveT);saveT=setTimeout(()=>{if(!exam)LS.set('pizarraK1.borrador',serial());LS.set('pizarraK1.opt',opt)},250)}
+const saveRosters=()=>LS.set('pizarraK1.plantillas',rosters);
+
+/* ---------- Sonido ---------- */
+let actx,audioReady=false;
+function unlockAudio(){
+  if(audioReady)return;
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();
+    const b=actx.createBuffer(1,1,22050),s=actx.createBufferSource();s.buffer=b;s.connect(actx.destination);s.start(0);
+    if(actx.state==='running')audioReady=true}catch(e){}
+}
+['pointerdown','touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,unlockAudio,{passive:true}));
+function tone(seq){if(!opt.sound)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();const t=actx.currentTime;
+  seq.forEach(([off,fr,type,dur])=>{const o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.value=fr;
+    g.gain.setValueAtTime(.0001,t+off);g.gain.exponentialRampToValueAtTime(.16,t+off+.015);g.gain.setValueAtTime(.16,t+off+dur-.05);g.gain.exponentialRampToValueAtTime(.0001,t+off+dur);
+    o.connect(g).connect(actx.destination);o.start(t+off);o.stop(t+off+dur+.02)})}catch(e){}}
+function buzz(){
+  const card=$('#courtCard');card.classList.remove('flash');void card.offsetWidth;card.classList.add('flash');
+  try{navigator.vibrate&&navigator.vibrate([90,50,90])}catch(e){}
+  tone([[0,155,'square',.18],[.2,110,'square',.18]]);
+}
+const chime=()=>tone([[0,660,'sine',.14],[.12,990,'sine',.2]]);
+let lastKeys=new Set();
+function liveCheck(){const keys=new Set(checkFaults().map(x=>x.key));let fresh=false;keys.forEach(k=>{if(!lastKeys.has(k))fresh=true});lastKeys=keys;if(fresh)buzz()}
+function resyncKeys(){lastKeys=new Set(checkFaults().map(x=>x.key))}
+
+/* ---------- Animación ---------- */
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+function stopAnim(){if(anim){cancelAnimationFrame(anim.raf);anim=null}playing=false;if(simHold){simHold=null;const c=$('#tlCur');if(c)c.style.display='none'}}
+function animateTo(from,to,then){
+  if(anim)cancelAnimationFrame(anim.raf);
+  const A=S.steps[from],B=S.steps[to];const ba=ballOf(from),bb=ballOf(to),c=ctrl(ba,bb);
+  const dur=1150/opt.speed;const t0=performance.now();anim={};setCap(to,true);
+  const fr=now=>{const t=Math.min(1,(now-t0)/dur),e=ease(t);const P={};
+    for(const id in B.P){const a=A.P[id]||B.P[id],b=B.P[id];P[id]=[a[0]+(b[0]-a[0])*e,a[1]+(b[1]-a[1])*e]}
+    anim.frame={P,ball:quad(ba,c,bb,e),bs:1+.75*Math.sin(Math.PI*e)};drawCourt();
+    if(t<1){anim.raf=requestAnimationFrame(fr)}else{anim=null;S.cur=to;renderAll();then&&then()}};
+  anim.raf=requestAnimationFrame(fr);
+}
+function playAll(){
+  if(exam)return;
+  if(playing){stopAnim();renderAll();return}
+  if(S.cur>=S.steps.length-1){S.cur=0;renderAll()}
+  playing=true;renderSteps();
+  const next=()=>{if(!playing)return;if(S.cur>=S.steps.length-1){playing=false;renderSteps();return}
+    animateTo(S.cur,S.cur+1,()=>{if(playing)setTimeout(next,280/opt.speed)})};
+  setTimeout(next,150);
+}
+function goStep(i){if(exam)return;stopAnim();S.cur=Math.max(0,Math.min(S.steps.length-1,i));renderAll()}
+function stepNext(){if(exam||S.cur>=S.steps.length-1)return;stopAnim();animateTo(S.cur,S.cur+1)}
+
+/* ---------- Confirmaciones ---------- */
+function ask(msg,yes){$('#confirmMsg').textContent=msg;$('#confirm').hidden=false;confirmYes=yes;try{$('#confirm').scrollIntoView({block:'nearest',behavior:'smooth'})}catch(_){}}
+$('#cYes').onclick=()=>{$('#confirm').hidden=true;const fn=confirmYes;confirmYes=null;fn&&fn()};
+$('#cNo').onclick=()=>{$('#confirm').hidden=true;confirmYes=null};
+function guarded(msg,fn){if(exam)return;S.dirty?ask(msg,fn):fn()}
+function regen(){stopAnim();pushUndo();const v=genVariants(S.system,S.rot,S.libero);S.variants=v;S.vi=0;S.steps=v[0].steps;S.srv=[4.5,-1.2];S.cur=0;S.dirty=false;resyncKeys();renderAll();autosave()}
+function setVariant(i){stopAnim();S.vi=i;S.steps=S.variants[i].steps;S.cur=Math.min(S.cur,S.steps.length-1);resyncKeys();renderAll();autosave()}
+
+/* ---------- Examen ---------- */
+function examStart(){stopAnim();exam={prev:snap(),ok:0,total:0,phase:'ask',fault:false,picked:null,res:'',right:null};$('#app').classList.add('examing');examNext()}
+function examExit(){if(!exam)return;const p=exam.prev;exam=null;$('#app').classList.remove('examing');restore(p);S.dirty=false}
+function examNext(){
+  const k=Math.floor(Math.random()*6);S.rot=k;const lu=lineup(S.system,k,S.libero);const want=Math.random()<.55;
+  const setP=P=>{const v=[{name:'Examen',steps:[{label:'Examen',P,ball:null,draw:[]}]}];S.variants=v;S.vi=0;S.steps=v[0].steps;S.cur=0};
+  let P,ok=false;
+  for(let t=0;t<60&&!ok;t++){P={};lu.forEach(p=>{const [x,d]=PRESET[k][p.zone];P[p.id]=[Math.min(8.8,Math.max(.2,x+rnd(-.5,.5))),NET+Math.min(8.7,Math.max(.3,d+rnd(-.45,.45)))]});setP(P);ok=checkFaults().length===0}
+  if(!ok){P={};lu.forEach(p=>{const [x,d]=PRESET[k][p.zone];P[p.id]=[x,NET+d]});setP(P)}
+  if(want){const by={};lu.forEach(p=>by[p.zone]=p.id);const base=cp(P);
+    for(let t=0;t<30;t++){const Q=cp(base);const pairs=[...FB.map(p=>['fb',...p]),...LR.map(p=>['lr',...p])];const [ty,a,b]=pairs[Math.floor(Math.random()*pairs.length)];
+      if(ty==='fb'){const fr=Q[by[a]],bk=Q[by[b]];const ny=fr[1]-rnd(.35,.9);if(ny>NET+.2)bk[1]=ny;else fr[1]=Math.min(17.8,bk[1]+rnd(.35,.9))}
+      else{const l=Q[by[a]],r=Q[by[b]];const nx=r[0]+rnd(.35,.8);if(nx<8.8)l[0]=nx;else r[0]=Math.max(.2,l[0]-rnd(.35,.8))}
+      setP(Q);if(checkFaults().length)break}
+  }
+  exam.fault=checkFaults().length>0;exam.phase='ask';exam.picked=null;exam.res='';exam.right=null;renderAll();
+}
+function examAnswer(sayFault){
+  if(!exam||exam.phase!=='ask')return;
+  if(sayFault!==exam.fault){exam.total++;exam.right=false;exam.phase='reveal';exam.res=exam.fault?'No: había falta de posición.':'No: la posición era legal.';buzz()}
+  else if(!exam.fault){exam.total++;exam.ok++;exam.right=true;exam.phase='reveal';exam.res='Correcto: la posición es legal.';chime()}
+  else{exam.phase='pick';exam.res='Bien visto. Ahora toca en la pista a una jugadora mal colocada.';exam.right=null}
+  renderAll();
+}
+function examPick(id){
+  const ids=new Set();checkFaults().forEach(x=>x.ids.forEach(i=>ids.add(i)));exam.picked=id;exam.total++;
+  if(ids.has(id)){exam.ok++;exam.right=true;exam.res=`Correcto: ${chipName(id)} está implicada en la falta.`;chime()}
+  else{exam.right=false;exam.res=`No: ${chipName(id)} está bien colocada.`;buzz()}
+  exam.phase='reveal';renderAll();
+}
+function renderExam(){
+  const el=$('#exam');if(!exam){el.hidden=true;return}
+  el.hidden=false;el.className='exam'+(exam.right===true?' right':exam.right===false?' wrong':'');
+  const fl=checkFaults();
+  if(exam.phase==='ask')el.innerHTML=`<p class="q">¿Es legal esta posición ${MOMENT()}?</p><div class="row"><button class="btn big primary" data-ex="legal">Es legal</button><button class="btn big danger" data-ex="falta">Hay falta</button><button class="btn" data-ex="salir">Salir</button></div><p class="sub">Aciertos: ${exam.ok} de ${exam.total}</p>`;
+  else if(exam.phase==='pick')el.innerHTML=`<p class="q">¿Quién está mal colocada?</p><p class="res">${esc(exam.res)}</p><div class="row"><button class="btn" data-ex="salir">Salir</button></div>`;
+  else el.innerHTML=`<p class="res">${esc(exam.res)}</p>${fl.length?`<ul>${fl.map(x=>`<li>${esc(x.msg)}</li>`).join('')}</ul>`:''}<div class="row"><button class="btn big primary" data-ex="sig">Siguiente</button><button class="btn" data-ex="salir">Salir del examen</button></div><p class="sub">Aciertos: ${exam.ok} de ${exam.total}</p>`;
+}
+$('#exam').addEventListener('click',e=>{const b=e.target.closest('[data-ex]');if(!b)return;const a=b.dataset.ex;
+  if(a==='legal')examAnswer(false);else if(a==='falta')examAnswer(true);else if(a==='sig')examNext();else if(a==='salir')examExit()});
+$('#bExam').onclick=()=>{exam?examExit():examStart();if(exam&&innerWidth<900)window.scrollTo({top:0,behavior:'smooth'})};
+
+/* ---------- Interacción con la pista ---------- */
+function toSvg(e){const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const w=svg.querySelector('#world')||svg;const p=pt.matrixTransform(w.getScreenCTM().inverse());return [p.x,p.y]}
+const clamp=p=>[Math.max(-1.8,Math.min(10.8,p[0])),Math.max(-2.8,Math.min(20.8,p[1]))];
+function getPos(id){if(id==='srv')return S.srv;if(id==='ball')return S.steps[S.cur].ball;return S.steps[S.cur].P[id]}
+svg.addEventListener('pointerdown',e=>{
+  if(anim||playing){stopAnim();renderAll()}
+  if(exam){if(exam.phase==='pick'){const t=e.target.closest('[data-id]');if(t&&t.dataset.id!=='srv'&&t.dataset.id!=='ball')examPick(t.dataset.id)}return}
+  const p=toSvg(e);
+  if(opt.tool==='move'){
+    const t=e.target.closest('[data-id]');
+    if(!t){swipe={x:e.clientX,y:e.clientY};try{svg.setPointerCapture(e.pointerId)}catch(_){}return}
+    const id=t.dataset.id;const st=getPos(id).slice();const follow=[];
+    if(id!=='srv'){for(let j=S.cur+1;j<S.steps.length;j++){const q=id==='ball'?S.steps[j].ball:S.steps[j].P[id];if(q&&Math.abs(q[0]-st[0])<.01&&Math.abs(q[1]-st[1])<.01)follow.push(j);else break}}
+    drag={id,off:[st[0]-p[0],st[1]-p[1]],follow};
+  }else{stroke={t:opt.tool,c:opt.color,pts:[p,p]}}
+  try{svg.setPointerCapture(e.pointerId)}catch(_){}
+  e.preventDefault();drawCourt();
+});
+svg.addEventListener('pointermove',e=>{
+  if(!drag&&!stroke)return;const p=toSvg(e);
+  if(drag){if(!drag.pushed){pushUndo();drag.pushed=true}const np=clamp([p[0]+drag.off[0],p[1]+drag.off[1]]);
+    if(drag.id==='srv'){S.srv=np}
+    else if(drag.id==='ball'){S.steps[S.cur].ball=np;drag.follow.forEach(j=>S.steps[j].ball=np.slice())}
+    else{S.steps[S.cur].P[drag.id]=np;drag.follow.forEach(j=>S.steps[j].P[drag.id]=np.slice())}
+    if(S.cur===0)liveCheck();
+    drawCourt();renderStatus();
+  }else if(stroke){
+    if(stroke.t==='arrow'){stroke.pts[1]=p}
+    else{const l=stroke.pts[stroke.pts.length-1];if(Math.hypot(p[0]-l[0],p[1]-l[1])>.07)stroke.pts.push(p)}
+    drawCourt();
+  }
+});
+function endPointer(e){
+  if(swipe){const dx=e.clientX-swipe.x,dy=e.clientY-swipe.y;swipe=null;
+    if(e.type==='pointerup'&&Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){dx<0?stepNext():goStep(S.cur-1)}}
+  if(drag){const moved=drag.pushed;drag=null;if(moved){S.dirty=true;autosave()}renderAll()}
+  if(stroke){const s=stroke;stroke=null;
+    const ok=s.t==='arrow'?Math.hypot(s.pts[1][0]-s.pts[0][0],s.pts[1][1]-s.pts[0][1])>.3:s.pts.length>2;
+    if(ok){pushUndo();if(s.t==='pen')s.pts.shift();s.pts=s.pts.map(q=>[f(q[0]),f(q[1])]);S.steps[S.cur].draw.push(s);S.dirty=true;autosave()}
+    drawCourt();renderSteps()}
+}
+svg.addEventListener('pointerup',endPointer);svg.addEventListener('pointercancel',endPointer);
+
+/* ---------- Controles ---------- */
+$('#pills').addEventListener('click',e=>{const b=e.target.closest('.pill');if(b)goStep(+b.dataset.i)});
+$('#varbar').addEventListener('click',e=>{
+  if(e.target.closest('#bAddVar')){dupVariant();return}
+  const b=e.target.closest('[data-v]');if(b&&+b.dataset.v!==S.vi)setVariant(+b.dataset.v)});
+function dupVariant(){stopAnim();pushUndo();const c=cp(S.variants[S.vi]);c.name=(c.name+' (2)').slice(0,30);S.variants.splice(S.vi+1,0,c);S.dirty=true;setVariant(S.vi+1);setTimeout(()=>{const n=$('#varName');if(n&&!$('#app').classList.contains('present')){n.focus();n.select()}},50)}
+$('#bDupVar').onclick=dupVariant;
+$('#bDelVar').onclick=()=>{if(S.variants.length<2)return;ask(`¿Borrar la salida «${S.variants[S.vi].name}»?`,()=>{pushUndo();S.variants.splice(S.vi,1);S.dirty=true;setVariant(Math.min(S.vi,S.variants.length-1))})};
+$('#varName').addEventListener('focus',()=>pushUndo());
+$('#varName').addEventListener('input',e=>{S.variants[S.vi].name=(e.target.value||'Salida').slice(0,30);S.dirty=true;renderVarbar();setCap(S.cur);autosave()});
+$('#bFirst').onclick=()=>goStep(0);
+$('#bPrev').onclick=()=>goStep(S.cur-1);
+$('#bNext').onclick=stepNext;
+$('#bPlay').onclick=playAll;
+$('#bUndo').onclick=undo;$('#bRedo').onclick=redo;
+$('#speed').onchange=e=>{opt.speed=+e.target.value;autosave()};
+
+$('#sysSeg').addEventListener('click',e=>{const b=e.target.closest('[data-sys]');if(!b||b.dataset.sys===S.system)return;
+  guarded('Cambiar de sistema rehace las salidas de la jugada. Puedes deshacerlo con ↶.',()=>{S.system=b.dataset.sys;S.name='';regen()})});
+$('#rots').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b||+b.dataset.k===S.rot)return;
+  guarded('Cambiar de rotación rehace las salidas de la jugada. Puedes deshacerlo con ↶.',()=>{S.rot=+b.dataset.k;S.name='';regen()})});
+$('#bRotate').onclick=()=>guarded('Rotar rehace las salidas de la jugada. Puedes deshacerlo con ↶.',()=>{S.rot=(S.rot+1)%6;S.name='';regen()});
+$('#optLib').onchange=e=>{const v=e.target.checked;e.target.checked=S.libero;
+  guarded('Cambiar la líbero rehace las salidas de la jugada. Puedes deshacerlo con ↶.',()=>{S.libero=v;regen()})};
+$('#bReset').onclick=()=>guarded('Se restaurarán las salidas por defecto de esta rotación. Puedes deshacerlo con ↶.',regen);
+
+$('#stepLabel').addEventListener('focus',()=>pushUndo());
+$('#stepLabel').addEventListener('input',e=>{S.steps[S.cur].label=e.target.value||`Paso ${S.cur+1}`;S.dirty=true;renderSteps();renderStatus();autosave()});
+$('#bAddStep').onclick=()=>{if(exam)return;stopAnim();pushUndo();const c=cp(S.steps[S.cur]);c.label=`Paso ${S.cur+2}`;c.draw=[];if(!c.ball)c.ball=ballOf(S.cur).slice();
+  S.steps.splice(S.cur+1,0,c);S.cur++;S.dirty=true;renderAll();autosave()};
+$('#bDelStep').onclick=()=>{if(S.cur===0)return;ask(`¿Borrar el paso «${S.steps[S.cur].label}»?`,()=>{pushUndo();S.steps.splice(S.cur,1);S.cur=Math.min(S.cur,S.steps.length-1);S.dirty=true;renderAll();autosave()})};
+
+$('#toolSeg').addEventListener('click',e=>{const b=e.target.closest('[data-tool]');if(!b)return;opt.tool=b.dataset.tool;renderControls();setCap(S.cur);autosave()});
+$('#swatches').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(!b)return;opt.color=b.dataset.c;if(opt.tool==='move')opt.tool='pen';renderControls();setCap(S.cur);autosave()});
+$('#bClearDraw').onclick=()=>{if(!S.steps[S.cur].draw.length)return;pushUndo();S.steps[S.cur].draw=[];S.dirty=true;drawCourt();renderSteps();autosave()};
+
+$('#viewSeg').addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;opt.view=b.dataset.view;renderAll();autosave()});
+$('#orientSeg').addEventListener('click',e=>{const b=e.target.closest('[data-o]');if(!b)return;opt.orient=b.dataset.o;renderAll();autosave()});
+$('#optRel').onchange=e=>{opt.rel=e.target.checked;drawCourt();autosave()};
+$('#optTrails').onchange=e=>{opt.trails=e.target.checked;drawCourt();autosave()};
+$('#optZones').onchange=e=>{opt.zones=e.target.checked;if(opt.zones&&S.cur!==0&&!exam)goStep(0);else drawCourt();autosave()};
+$('#optSound').onchange=e=>{opt.sound=e.target.checked;autosave();if(opt.sound)buzz()};
+$('#tolSel').onchange=e=>{opt.tol=e.target.value;resyncKeys();renderAll();autosave()};
+
+/* ---------- Simulador: controles ---------- */
+$('#serveSeg').addEventListener('click',e=>{const b=e.target.closest('[data-sv]');if(!b)return;stopAnim();opt.serve=b.dataset.sv;renderAll();autosave()});
+$('#ruleSeg').addEventListener('click',e=>{const b=e.target.closest('[data-rule]');if(!b)return;stopAnim();opt.rule=b.dataset.rule;resyncKeys();renderAll();autosave()});
+$('#bSim').onclick=simRun;
+const num=v=>{const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:NaN};
+function renderTimes(){
+  $('#tgrid').innerHTML=`<span class="hd">Saque</span><span class="hd">Acción</span><span class="hd">Vuelo</span>`+Object.keys(DEF_ST).map(k=>`<span>${SV_NAME[k]}</span><input class="field" inputmode="decimal" data-st="${k}" data-p="a" value="${fmt(opt.st[k].a)}" aria-label="Acción ${SV_NAME[k]}"><input class="field" inputmode="decimal" data-st="${k}" data-p="f" value="${fmt(opt.st[k].f)}" aria-label="Vuelo ${SV_NAME[k]}">`).join('');
+  $('#inReact').value=fmt(opt.react);$('#inSpd').value=fmt(opt.spd);
+}
+$('#tgrid').addEventListener('input',e=>{const el=e.target.closest('[data-st]');if(!el)return;const n=num(el.value);
+  if(!(n>=0&&n<=10)||(el.dataset.p==='f'&&n<=0))return;opt.st[el.dataset.st][el.dataset.p]=n;stopAnim();renderSim();autosave()});
+$('#inReact').addEventListener('input',e=>{const n=num(e.target.value);if(n>=0&&n<=2){opt.react=n;stopAnim();renderSim();autosave()}});
+$('#inSpd').addEventListener('input',e=>{const n=num(e.target.value);if(n>0&&n<=10){opt.spd=n;stopAnim();renderSim();autosave()}});
+$('#bTimesReset').onclick=()=>{opt.st=cp(DEF_ST);opt.react=.25;opt.spd=3.0;renderTimes();stopAnim();renderAll();autosave()};
+
+/* ---------- Plantillas ---------- */
+$('#teamSel').onchange=e=>{opt.team=e.target.value;renderRoster(true);renderAll();autosave()};
+$('#bTeamNew').onclick=()=>{const t={id:Date.now().toString(36),name:`Equipo ${rosters.length+1}`,p:{}};rosters.push(t);opt.team=t.id;saveRosters();autosave();
+  const sec=$('[data-sec="plantilla"]');sec.classList.remove('closed');renderRoster(true);renderAll();const n=$('#teamName');n.focus();n.select()};
+$('#teamName').addEventListener('input',e=>{const t=team();if(!t)return;t.name=e.target.value.slice(0,30)||'Equipo';saveRosters();renderRoster()});
+$('#bTeamDel').onclick=()=>{const t=team();if(!t)return;ask(`¿Borrar la plantilla «${t.name}»? Se pierden sus dorsales y nombres.`,()=>{rosters=rosters.filter(r=>r.id!==t.id);opt.team='';saveRosters();autosave();renderRoster(true);renderAll()})};
+$('#roster').addEventListener('input',e=>{const el=e.target.closest('[data-rid]');const t=team();if(!el||!t)return;t.p=t.p||{};const r=t.p[el.dataset.rid]=t.p[el.dataset.rid]||{};r[el.dataset.k]=el.value;saveRosters();drawCourt();renderStatus()});
+$('#labelSeg').addEventListener('click',e=>{const b=e.target.closest('[data-lab]');if(!b)return;opt.lab=b.dataset.lab;renderAll();autosave()});
+$('#optNames').onchange=e=>{opt.names=e.target.checked;drawCourt();autosave()};
+
+/* ---------- Jugadas ---------- */
+const KEY='pizarraK1.jugadas';
+let plays=(LS.get(KEY)||[]).filter(p=>p&&p.data&&normalize(p.data));let pendingDel=null;
+function renderPlays(){
+  $('#plays').innerHTML=plays.map((p,i)=>{const d=normalize(p.data);return `<li><span class="nm">${esc(p.name)}<small>${esc(d.system)} · ${d.variants.length} ${d.variants.length===1?'salida':'salidas'} · ${new Date(p.date).toLocaleDateString('es-ES')}</small></span><button class="btn" data-load="${i}">Cargar</button><button class="btn danger" data-del="${i}">${pendingDel===i?'¿Seguro?':'Borrar'}</button></li>`}).join('');
+  $('#playsHint').textContent=plays.length?'Se guardan en este navegador. Para pasarlas a otro dispositivo, copia el código.':'Aún no hay jugadas guardadas en este navegador.';
+}
+function loadData(d){const o=normalize(d);if(!o)return false;pushUndo();S=o;stopAnim();resyncKeys();renderAll();autosave();return true}
+$('#playName').addEventListener('input',e=>{S.name=e.target.value;autosave()});
+$('#bSave').onclick=()=>{if(exam)return;const name=($('#playName').value||'').trim()||defaultName();S.name=name;
+  const i=plays.findIndex(p=>p.name===name);const rec={name,date:Date.now(),data:cp(serial())};
+  if(i>=0)plays[i]=rec;else plays.unshift(rec);LS.set(KEY,plays);S.dirty=false;renderPlays();renderControls();
+  const b=$('#bSave');b.textContent='Guardada';setTimeout(()=>b.textContent='Guardar',1400)};
+$('#plays').addEventListener('click',e=>{
+  const l=e.target.closest('[data-load]'),d=e.target.closest('[data-del]');
+  if(l){const p=plays[+l.dataset.load];guarded('Cargar otra jugada sustituye la actual. Puedes deshacerlo con ↶.',()=>loadData(p.data))}
+  if(d){const i=+d.dataset.del;if(pendingDel===i){plays.splice(i,1);LS.set(KEY,plays);pendingDel=null}else{pendingDel=i;setTimeout(()=>{if(pendingDel===i){pendingDel=null;renderPlays()}},3000)}renderPlays()}
+});
+$('#bExport').onclick=()=>{const t=$('#code');t.value=JSON.stringify(serial());
+  const b=$('#bExport');const done=m=>{b.textContent=m;setTimeout(()=>b.textContent='Copiar código',1600)};
+  try{navigator.clipboard.writeText(t.value).then(()=>done('Copiado'),()=>{t.focus();t.select();done('Selecciónalo y cópialo')})}catch(_){t.focus();t.select();done('Selecciónalo y cópialo')}};
+$('#bImport').onclick=()=>{let d;try{d=JSON.parse($('#code').value)}catch(_){d=null}
+  const b=$('#bImport');if(!normalize(d)){b.textContent='Código no válido';setTimeout(()=>b.textContent='Cargar código pegado',1800);return}
+  guarded('Cargar el código sustituye la jugada actual. Puedes deshacerlo con ↶.',()=>{loadData(d);b.textContent='Cargada';setTimeout(()=>b.textContent='Cargar código pegado',1500)})};
+
+/* ---------- Presentación, giro y teclado ---------- */
+let wake=null;
+const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
+function present(on){
+  $('#app').classList.toggle('present',on);
+  document.documentElement.style.overflow=on?'hidden':'';document.body.style.overflow=on?'hidden':'';
+  try{const d=document.documentElement;
+    if(on&&!fsEl()){const r=d.requestFullscreen||d.webkitRequestFullscreen;if(r){const p=r.call(d);if(p&&p.catch)p.catch(()=>{})}}
+    if(!on&&fsEl()){const x=document.exitFullscreen||document.webkitExitFullscreen;if(x){const p=x.call(document);if(p&&p.catch)p.catch(()=>{})}}
+  }catch(_){}
+  try{if(on&&navigator.wakeLock)navigator.wakeLock.request('screen').then(w=>wake=w,()=>{});if(!on&&wake){wake.release().catch(()=>{});wake=null}}catch(_){}
+  renderAll();
+}
+$('#btnPresent').onclick=()=>present(true);
+$('#btnExit').onclick=()=>present(false);
+$('#btnTurn').onclick=()=>{opt.orient=isH()?'v':'h';renderAll();autosave()};
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{if(!fsEl()&&$('#app').classList.contains('present'))present(false)}));
+let rzT;function onResize(){clearTimeout(rzT);rzT=setTimeout(()=>{if(!anim)drawCourt()},80)}
+window.addEventListener('resize',onResize);window.addEventListener('orientationchange',onResize);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&$('#app').classList.contains('present')&&navigator.wakeLock&&!wake)navigator.wakeLock.request('screen').then(w=>wake=w,()=>{})});
+document.addEventListener('keydown',e=>{
+  if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
+  const mod=e.ctrlKey||e.metaKey;
+  if(mod&&(e.key==='z'||e.key==='Z')){e.preventDefault();e.shiftKey?redo():undo();return}
+  if(mod&&(e.key==='y'||e.key==='Y')){e.preventDefault();redo();return}
+  if(e.key==='ArrowRight'){e.preventDefault();stepNext()}
+  else if(e.key==='ArrowLeft'){e.preventDefault();goStep(S.cur-1)}
+  else if(e.key===' '){e.preventDefault();playAll()}
+  else if(e.key==='Home'){e.preventDefault();goStep(0)}
+  else if(e.key==='Escape'&&$('#app').classList.contains('present'))present(false);
+});
+
+/* Secciones plegables (en móvil se pliegan las menos usadas) */
+const secState=LS.get('pizarraK1.secs2')||{};
+document.querySelectorAll('.panel .sec').forEach(sec=>{
+  const h=sec.querySelector('h2');const key=sec.dataset.sec;
+  h.setAttribute('role','button');h.tabIndex=0;
+  const startClosed=key in secState?secState[key]:(innerWidth<900?!['equipo','salida'].includes(key):['jugadas','normas'].includes(key));
+  sec.classList.toggle('closed',startClosed);h.setAttribute('aria-expanded',String(!startClosed));
+  const tog=()=>{const c=sec.classList.toggle('closed');h.setAttribute('aria-expanded',String(!c));secState[key]=c;LS.set('pizarraK1.secs2',secState)};
+  h.addEventListener('click',tog);
+  h.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog()}});
+});
+
+resyncKeys();renderRoster(true);renderTimes();renderAll();renderPlays();
+})();
+</script>
+
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
+</script>
+</body>
+</html>
